@@ -12,25 +12,38 @@ var updateUI = function(curtoken) {
     }
 };
 
-var checkSytem = function() {
+/**
+ *  There are three possible return values. The system is not running at all,
+ *  the system is running and no one is logged in, or the system is running and
+ *  someone is logged in.
+ *
+ *  You'll pass in a callback, taking one of these which are structured as:
+ *  - Someone logged in: [ 'actual-user-token' ]
+ *  - No one logged in: [ false ]
+ *  - System not running: [ 404 ]
+ *
+ *  These are all the first item in the returned array so you should be able
+ *  to check for false, 404, or the name of the user token.
+ */
+var checkSytem = function(callback) {
     $.ajax({
         url: "http://localhost:8081/userToken",
         dataType: "json",
         success: function(data) {
-            console.log("Logged in as "+data[0]);
+            callback(data);
         },
         error: function(jqXHR, textStatus, errorThrown) {
             if (jqXHR.responseJSON) {
                 var data = jqXHR.responseJSON;
                 if (data.isError && data.message.indexOf("No user currently logged in to the system") == 0) {
-                    console.log("No one logged in.");
+                    callback([false]);
                 }
                 else if (data.isError) {
                     console.log("Some other correct error.");
                 }
             }
             else {
-                console.log("Unable to contact server.");
+                callback([404]);
             }
         }
     });
@@ -71,4 +84,11 @@ $(document).ready(function () {
     $(".userlogout").click(function () {
         logout();
     })
+
+    var statusPing = function() {
+        checkSytem(function(val) { console.log(val); });
+        window.setTimeout(statusPing, 2500);
+    };
+
+    window.setTimeout(statusPing, 1000);
 });
